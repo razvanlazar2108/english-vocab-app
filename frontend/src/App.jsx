@@ -82,6 +82,10 @@ function App() {
     }
   };
 
+  const handleBackup = () => {
+    window.open('http://localhost:5000/api/export', '_blank');
+  };
+
   const startQuiz = async () => {
     try {
       const url = quizDifficulty === 'All' 
@@ -111,7 +115,6 @@ function App() {
     e.preventDefault();
     const currentWord = quizQuestions[currentIndex];
     
-    // Verificăm traducerea (ignorând diacriticele/case-ul simplu)
     const isCorrect = userAnswer.trim().toLowerCase() === currentWord.translation.trim().toLowerCase();
     
     if (isCorrect) {
@@ -136,17 +139,22 @@ function App() {
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto' }}>
       <h1>English Vocabulary Learning</h1>
 
-      {/* Navigare Tab-uri */}
-      <div style={{ marginBottom: '20px' }}>
+      {/* Navigare Tab-uri și Buton Backup */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
         <button 
           onClick={() => setActiveTab('vocab')} 
-          style={{ padding: '10px 20px', marginRight: '10px', background: activeTab === 'vocab' ? '#007BFF' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          style={{ padding: '10px 20px', background: activeTab === 'vocab' ? '#007BFF' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
           Gestionare Cuvinte
         </button>
         <button 
           onClick={() => setActiveTab('quiz')} 
           style={{ padding: '10px 20px', background: activeTab === 'quiz' ? '#007BFF' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
           Generează Test / Quiz
+        </button>
+        <button 
+          onClick={handleBackup} 
+          style={{ padding: '10px 20px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginLeft: 'auto' }}>
+          📂 Backup / Export Drive
         </button>
       </div>
 
