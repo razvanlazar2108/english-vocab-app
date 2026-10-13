@@ -1,0 +1,17 @@
+# Dependențe
+node_modules/
+
+# Fișiere de mediu și secrete
+.env
+
+# Baza de date SQLite locală
+*.db
+*.sqlite
+
+# Build-uri / Output-uri
+dist/
+build/
+
+# Sisteme de operare
+.DS_Store
+Thumbs.db
