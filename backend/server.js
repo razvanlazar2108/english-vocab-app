@@ -35,6 +35,36 @@ app.post('/api/vocabulary', (req, res) => {
     });
 });
 
+// Endpoint pentru listarea tuturor casetelor de vocabular
+app.get('/api/vocabulary', (req, res) => {
+    const sql = `SELECT * FROM vocabulary ORDER BY id DESC`;
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({
+            message: 'success',
+            data: rows
+        });
+    });
+});
+
+// Endpoint pentru ștergerea unei casete de vocabular după ID
+app.delete('/api/vocabulary/:id', (req, res) => {
+    const id = req.params.id;
+    const sql = `DELETE FROM vocabulary WHERE id = ?`;
+    
+    db.run(sql, id, function (err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({
+            message: 'deleted successfully',
+            changes: this.changes
+        });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
