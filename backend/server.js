@@ -94,6 +94,29 @@ app.get('/api/quiz', (req, res) => {
     });
 });
 
+// Endpoint pentru exportul complet al datelor (util pentru backup în Google Drive)
+app.get('/api/export', (req, res) => {
+    const sql = `SELECT * FROM vocabulary`;
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        const backupData = {
+            exportDate: new Date().toISOString(),
+            totalItems: rows.length,
+            vocabulary: rows.map(item => ({
+                ...item,
+                examples: item.examples ? JSON.parse(item.examples) : []
+            }))
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=vocab-backup.json');
+        res.status(200).send(JSON.stringify(backupData, null, 2));
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
