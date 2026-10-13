@@ -1,11 +1,38 @@
 const express = require('express');
+const cors = require('cors');
+const db = require('./database');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(cors());
 app.use(express.json());
 
+// Endpoint de verificare
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Vocab API is running successfully' });
+});
+
+// Endpoint pentru adăugarea unei casete noi de vocabular
+app.post('/api/vocabulary', (req, res) => {
+    const { word, translation, grammar_properties, examples, difficulty } = req.body;
+
+    if (!word || !translation || !difficulty) {
+        return res.status(400).json({ error: 'Word, translation, and difficulty are required fields.' });
+    }
+
+    const sql = `INSERT INTO vocabulary (word, translation, grammar_properties, examples, difficulty) VALUES (?, ?, ?, ?, ?)`;
+    const params = [word, translation, grammar_properties, JSON.stringify(examples), difficulty];
+
+    db.run(sql, params, function (err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(201).json({
+            message: 'Vocabulary item created successfully',
+            id: this.lastID
+        });
+    });
 });
 
 app.listen(PORT, () => {
