@@ -65,6 +65,35 @@ app.delete('/api/vocabulary/:id', (req, res) => {
     });
 });
 
+// Endpoint pentru generarea unui quiz (opțional filtrat după dificultate)
+app.get('/api/quiz', (req, res) => {
+    const { difficulty } = req.query;
+    let sql = `SELECT * FROM vocabulary`;
+    let params = [];
+
+    if (difficulty && difficulty !== 'All') {
+        sql += ` WHERE difficulty = ?`;
+        params.push(difficulty);
+    }
+
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        // Amestecăm cuvintele aleatoriu (Fisher-Yates shuffle)
+        for (let i = rows.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [rows[i], rows[j]] = [rows[j], rows[i]];
+        }
+
+        res.json({
+            message: 'success',
+            data: rows
+        });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
