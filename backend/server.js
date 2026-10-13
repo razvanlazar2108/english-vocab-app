@@ -117,6 +117,29 @@ app.get('/api/export', (req, res) => {
     });
 });
 
+// Endpoint pentru actualizarea unei casete de vocabular existente
+app.put('/api/vocabulary/:id', (req, res) => {
+    const id = req.params.id;
+    const { word, translation, grammar_properties, examples, difficulty } = req.body;
+
+    if (!word || !translation || !difficulty) {
+        return res.status(400).json({ error: 'Word, translation, and difficulty are required fields.' });
+    }
+
+    const sql = `UPDATE vocabulary SET word = ?, translation = ?, grammar_properties = ?, examples = ?, difficulty = ? WHERE id = ?`;
+    const params = [word, translation, grammar_properties, JSON.stringify(examples), difficulty, id];
+
+    db.run(sql, params, function (err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({
+            message: 'Vocabulary item updated successfully',
+            changes: this.changes
+        });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
