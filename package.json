@@ -1,0 +1,15 @@
+{
+  "name": "english-vocab-app",
+  "version": "1.0.0",
+  "description": "A full-stack application designed to help users learn and manage English vocabulary and expressions efficiently.",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"cd backend && node server.js\" \"cd frontend && npm run dev\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  }
+}
