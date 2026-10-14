@@ -15,14 +15,14 @@ app.get('/api/health', (req, res) => {
 
 // Endpoint pentru adăugarea unei casete noi de vocabular
 app.post('/api/vocabulary', (req, res) => {
-    const { word, translation, grammar_properties, examples, difficulty } = req.body;
+    const { word, translation, grammar_properties, description, examples, difficulty } = req.body;
 
-    if (!word || !translation || !difficulty) {
-        return res.status(400).json({ error: 'Word, translation, and difficulty are required fields.' });
+    if (!word || !translation || !difficulty || !grammar_properties) {
+        return res.status(400).json({ error: 'Word, translation, grammar properties, and difficulty are required fields.' });
     }
 
-    const sql = `INSERT INTO vocabulary (word, translation, grammar_properties, examples, difficulty) VALUES (?, ?, ?, ?, ?)`;
-    const params = [word, translation, grammar_properties, JSON.stringify(examples), difficulty];
+    const sql = `INSERT INTO vocabulary (word, translation, grammar_properties, description, examples, difficulty) VALUES (?, ?, ?, ?, ?, ?)`;
+    const params = [word, translation, grammar_properties, description || '', JSON.stringify(examples), difficulty];
 
     db.run(sql, params, function (err) {
         if (err) {
@@ -65,15 +65,20 @@ app.delete('/api/vocabulary/:id', (req, res) => {
     });
 });
 
-// Endpoint pentru generarea unui quiz (opțional filtrat după dificultate)
+// Endpoint pentru generarea unui quiz (filtrat după dificultate, prima literă și valoare gramaticală)
 app.get('/api/quiz', (req, res) => {
-    const { difficulty } = req.query;
-    let sql = `SELECT * FROM vocabulary`;
+    const { difficulty, firstLetter, grammar } = req.query;
+    let sql = `SELECT * FROM vocabulary WHERE 1=1`;
     let params = [];
 
     if (difficulty && difficulty !== 'All') {
-        sql += ` WHERE difficulty = ?`;
+        sql += ` AND difficulty = ?`;
         params.push(difficulty);
+    }
+
+    if (grammar && grammar !== 'All') {
+        sql += ` AND grammar_properties = ?`;
+        params.push(grammar);
     }
 
     db.all(sql, params, (err, rows) => {
@@ -81,15 +86,21 @@ app.get('/api/quiz', (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         
+        // Dacă s-a cerut filtru după prima literă
+        let filteredRows = rows;
+        if (firstLetter && firstLetter !== 'All') {
+            filteredRows = rows.filter(item => item.word.toLowerCase().startsWith(firstLetter.toLowerCase()));
+        }
+
         // Amestecăm cuvintele aleatoriu (Fisher-Yates shuffle)
-        for (let i = rows.length - 1; i > 0; i--) {
+        for (let i = filteredRows.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [rows[i], rows[j]] = [rows[j], rows[i]];
+            [filteredRows[i], filteredRows[j]] = [filteredRows[j], filteredRows[i]];
         }
 
         res.json({
             message: 'success',
-            data: rows
+            data: filteredRows
         });
     });
 });
@@ -120,14 +131,14 @@ app.get('/api/export', (req, res) => {
 // Endpoint pentru actualizarea unei casete de vocabular existente
 app.put('/api/vocabulary/:id', (req, res) => {
     const id = req.params.id;
-    const { word, translation, grammar_properties, examples, difficulty } = req.body;
+    const { word, translation, grammar_properties, description, examples, difficulty } = req.body;
 
-    if (!word || !translation || !difficulty) {
-        return res.status(400).json({ error: 'Word, translation, and difficulty are required fields.' });
+    if (!word || !translation || !difficulty || !grammar_properties) {
+        return res.status(400).json({ error: 'Word, translation, grammar properties, and difficulty are required fields.' });
     }
 
-    const sql = `UPDATE vocabulary SET word = ?, translation = ?, grammar_properties = ?, examples = ?, difficulty = ? WHERE id = ?`;
-    const params = [word, translation, grammar_properties, JSON.stringify(examples), difficulty, id];
+    const sql = `UPDATE vocabulary SET word = ?, translation = ?, grammar_properties = ?, description = ?, examples = ?, difficulty = ? WHERE id = ?`;
+    const params = [word, translation, grammar_properties, description || '', JSON.stringify(examples), difficulty, id];
 
     db.run(sql, params, function (err) {
         if (err) {
