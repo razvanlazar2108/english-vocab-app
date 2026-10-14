@@ -1,7 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// Calea către fișierul bazei de date SQLite în folderul backend
 const dbPath = path.resolve(__dirname, 'vocab.db');
 
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -20,6 +19,7 @@ function createTable() {
             word TEXT NOT NULL,
             translation TEXT NOT NULL,
             grammar_properties TEXT,
+            description TEXT,
             examples TEXT,
             difficulty TEXT CHECK(difficulty IN ('A1-A2', 'B1', 'B2', 'C1-C2')) NOT NULL
         )
@@ -29,6 +29,8 @@ function createTable() {
             console.error('Error creating table', err.message);
         } else {
             console.log('Vocabulary table ready.');
+            // Adăugăm coloana description dacă baza de date era deja creată fără ji
+            db.run(`ALTER TABLE vocabulary ADD COLUMN description TEXT`, () => {});
         }
     });
 }
