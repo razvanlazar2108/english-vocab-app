@@ -59,9 +59,9 @@ function App() {
     try {
       const response = await fetch('http://localhost:5000/api/vocabulary');
       const data = await response.json();
-      if (data.data) {
+      if (data && data.data) {
         const sortedData = data.data.sort((a, b) => a.word.localeCompare(b.word));
-        setVocabList(sortedData);
+        setVocabList([...sortedData]); // Forțăm crearea unui nou array pentru a declanșa re-randarea sigură în React
       }
     } catch (err) {
       console.error('Error fetching vocabulary:', err);
