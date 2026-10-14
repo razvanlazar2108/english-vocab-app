@@ -151,6 +151,74 @@ app.put('/api/vocabulary/:id', (req, res) => {
     });
 });
 
+const { google } = require('googleapis');
+
+// Endpoint pentru salvarea backup-ului direct în Google Drive
+app.get('/api/drive-backup', async (req, res) => {
+    try {
+        // 1. Preluăm datele din baza de date
+        db.all(`SELECT * FROM vocabulary`, [], async (err, rows) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+
+            const backupData = {
+                exportDate: new Date().toISOString(),
+                totalItems: rows.length,
+                vocabulary: rows.map(item => ({
+                    ...item,
+                    examples: item.examples ? JSON.parse(item.examples) : []
+                }))
+            };
+
+            const fileContent = JSON.stringify(backupData, null, 2);
+
+            // Verificăm dacă sunt setate credențialele de Google Drive în mediu (.env)
+            const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+            const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+            const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://developers.google.com/oauthplayground';
+            const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+
+            if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) {
+                // Dacă nu sunt setate, trimitem fișierul ca descărcare directă și un mesaj explicativ
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Content-Disposition', 'attachment; filename=vocab-backup.json');
+                return res.status(200).send(fileContent);
+            }
+
+            // Dacă avem credențialele, urcăm direct în Google Drive
+            const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+            oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+            const drive = google.drive({ version: 'v3', auth: oAuth2Client });
+
+            const fileMetadata = {
+                name: `vocab-backup-${new Date().toISOString().slice(0, 10)}.json`,
+                mimeType: 'application/json'
+            };
+
+            const media = {
+                mimeType: 'application/json',
+                body: fileContent
+            };
+
+            const response = await drive.files.create({
+                resource: fileMetadata,
+                media: media,
+                fields: 'id, name, webViewLink'
+            });
+
+            res.json({
+                message: 'Backup-ul a fost încărcat cu succes în Google Drive!',
+                fileDetails: response.data
+            });
+        });
+    } catch (error) {
+        console.error('Error uploading to Google Drive:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
