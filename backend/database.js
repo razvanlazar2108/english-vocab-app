@@ -8,11 +8,11 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.error('Error opening database ' + dbPath, err.message);
     } else {
         console.log('Connected to the SQLite database.');
-        createTable();
     }
 });
 
-function createTable() {
+// Folosim db.serialize pentru a garanta că tabelul este creat înainte de orice altă interogare
+db.serialize(() => {
     const sql = `
         CREATE TABLE IF NOT EXISTS vocabulary (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,10 +29,10 @@ function createTable() {
             console.error('Error creating table', err.message);
         } else {
             console.log('Vocabulary table ready.');
-            // Adăugăm coloana description dacă baza de date era deja creată fără ji
+            // Adăugăm coloana description dacă lipsea
             db.run(`ALTER TABLE vocabulary ADD COLUMN description TEXT`, () => {});
         }
     });
-}
+});
 
 module.exports = db;
