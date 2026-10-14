@@ -133,8 +133,21 @@ function App() {
     }
   };
 
-  const handleBackup = () => {
-    window.open('http://localhost:5000/api/export', '_blank');
+  const handleBackup = async () => {
+    try {
+      alert('Se procesează backup-ul către Google Drive...');
+      const response = await fetch('http://localhost:5000/api/drive-backup');
+      const data = await response.json();
+      
+      if (data.fileDetails) {
+        alert(`Succes! Fișierul "${data.fileDetails.name}" a fost urcat în Google Drive.`);
+      } else {
+        window.open('http://localhost:5000/api/drive-backup', '_blank');
+      }
+    } catch (err) {
+      console.error('Error during Drive backup:', err);
+      alert('A apărut o eroare la realizarea backup-ului.');
+    }
   };
 
   const startQuiz = async () => {
@@ -186,7 +199,6 @@ function App() {
     }, 2000);
   };
 
-  // Filtrare cuvinte în listă
   const filteredVocab = vocabList.filter(item => {
     const matchesSearch = item.word.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.translation.toLowerCase().includes(searchTerm.toLowerCase());
@@ -202,7 +214,6 @@ function App() {
         <p style={{ color: '#7f8c8d' }}>Învață, gestionează și testează-ți vocabularul eficient</p>
       </header>
 
-      {/* Navigare Tab-uri și Buton Backup */}
       <div style={{ marginBottom: '25px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <button 
           onClick={() => setActiveTab('vocab')} 
@@ -223,7 +234,6 @@ function App() {
 
       {activeTab === 'vocab' ? (
         <div>
-          {/* Formular Adăugare / Editare */}
           <form onSubmit={handleSubmit} style={{ background: '#fff', padding: '20px', borderRadius: '10px', marginBottom: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <h3 style={{ marginTop: 0, color: '#34495e' }}>{editingId ? '✏️ Editează cuvântul' : '➕ Adaugă cuvânt sau expresie nouă'}</h3>
             
@@ -271,7 +281,6 @@ function App() {
             </div>
           </form>
 
-          {/* Secțiune Căutare și Filtrare */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
             <input 
               type="text" 
