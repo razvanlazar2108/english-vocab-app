@@ -17,12 +17,19 @@ app.get('/api/health', (req, res) => {
 app.post('/api/vocabulary', (req, res) => {
     const { word, translation, grammar_properties, description, examples, difficulty } = req.body;
 
-    if (!word || !translation || !difficulty || !grammar_properties) {
-        return res.status(400).json({ error: 'Word, translation, grammar properties, and difficulty are required fields.' });
+    if (!word || !translation) {
+        return res.status(400).json({ error: 'Word and translation are required fields.' });
     }
 
     const sql = `INSERT INTO vocabulary (word, translation, grammar_properties, description, examples, difficulty) VALUES (?, ?, ?, ?, ?, ?)`;
-    const params = [word, translation, grammar_properties, description || '', JSON.stringify(examples), difficulty];
+    const params = [
+        word, 
+        translation, 
+        grammar_properties || 'Substantiv (Noun)', 
+        description || '', 
+        JSON.stringify(examples || []), 
+        difficulty || 'A1-A2'
+    ];
 
     db.run(sql, params, function (err) {
         if (err) {
@@ -133,12 +140,20 @@ app.put('/api/vocabulary/:id', (req, res) => {
     const id = req.params.id;
     const { word, translation, grammar_properties, description, examples, difficulty } = req.body;
 
-    if (!word || !translation || !difficulty || !grammar_properties) {
-        return res.status(400).json({ error: 'Word, translation, grammar properties, and difficulty are required fields.' });
+    if (!word || !translation) {
+        return res.status(400).json({ error: 'Word and translation are required fields.' });
     }
 
     const sql = `UPDATE vocabulary SET word = ?, translation = ?, grammar_properties = ?, description = ?, examples = ?, difficulty = ? WHERE id = ?`;
-    const params = [word, translation, grammar_properties, description || '', JSON.stringify(examples), difficulty, id];
+    const params = [
+        word, 
+        translation, 
+        grammar_properties || 'Substantiv (Noun)', 
+        description || '', 
+        JSON.stringify(examples || []), 
+        difficulty || 'A1-A2', 
+        id
+    ];
 
     db.run(sql, params, function (err) {
         if (err) {
