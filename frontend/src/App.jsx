@@ -25,7 +25,7 @@ function App() {
   const [tempFilterGrammar, setTempFilterGrammar] = useState('All');
   const [tempFilterDifficulty, setTempFilterDifficulty] = useState('All');
 
-  // State-urile active care se actualizează DOAR când apeși butonul special de filtrare
+  // State-urile active pentru filtrare (pornesc direct cu 'All' ca să arate tot din start)
   const [appliedSearch, setAppliedSearch] = useState('');
   const [appliedGrammar, setAppliedGrammar] = useState('All');
   const [appliedDifficulty, setAppliedDifficulty] = useState('All');
@@ -55,8 +55,6 @@ function App() {
   const [showResult, setShowResult] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  const [loading, setLoading] = useState(true);
-
   const fetchVocab = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/vocabulary');
@@ -67,8 +65,6 @@ function App() {
       }
     } catch (err) {
       console.error('Error fetching vocabulary:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -109,7 +105,7 @@ function App() {
     } catch (err) {
       console.error('Error saving vocabulary:', err);
     } finally {
-      setTimeout(() => setIsSubmitting(false), 300); // efect vizual de animație pe buton
+      setTimeout(() => setIsSubmitting(false), 300);
     }
   };
 
@@ -223,7 +219,7 @@ function App() {
     }, 2000);
   };
 
-  // Filtrăm elementele pe baza filtrelor aplicate prin butonul special
+  // Filtrăm elementele pe baza filtrelor aplicate
   const filteredVocab = vocabList.filter(item => {
     const matchesSearch = item.word.toLowerCase().includes(appliedSearch.toLowerCase()) || 
                           item.translation.toLowerCase().includes(appliedSearch.toLowerCase());
