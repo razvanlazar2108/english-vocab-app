@@ -55,21 +55,27 @@ function App() {
   const [showResult, setShowResult] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  const fetchVocab = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/vocabulary');
-      const data = await response.json();
-      if (data && data.data) {
-        const sortedData = data.data.sort((a, b) => a.word.localeCompare(b.word));
-        setVocabList([...sortedData]); // Forțăm crearea unui nou array pentru a declanșa re-randarea sigură în React
-      }
-    } catch (err) {
-      console.error('Error fetching vocabulary:', err);
-    }
-  };
-
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchVocab = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/vocabulary');
+        const data = await response.json();
+        if (isMounted && data && data.data) {
+          const sortedData = data.data.sort((a, b) => a.word.localeCompare(b.word));
+          setVocabList([...sortedData]);
+        }
+      } catch (err) {
+        console.error('Error fetching vocabulary:', err);
+      }
+    };
+
     fetchVocab();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSubmit = async (e) => {
