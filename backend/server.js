@@ -234,6 +234,40 @@ app.get('/api/drive-backup', async (req, res) => {
     }
 });
 
+// Endpoint pentru importul / restaurarea datelor dintr-un fișier de backup JSON
+app.post('/api/import', (req, res) => {
+    const { vocabulary } = req.body;
+
+    if (!vocabulary || !Array.isArray(vocabulary)) {
+        return res.status(400).json({ error: 'Invalid backup format. Expected vocabulary array.' });
+    }
+
+    let insertedCount = 0;
+
+    vocabulary.forEach(item => {
+        const sql = `INSERT INTO vocabulary (word, translation, grammar_properties, description, examples, difficulty) VALUES (?, ?, ?, ?, ?, ?)`;
+        const params = [
+            item.word,
+            item.translation,
+            item.grammar_properties || 'Substantiv (Noun)',
+            item.description || '',
+            JSON.stringify(item.examples || []),
+            item.difficulty || 'A1-A2'
+        ];
+
+        db.run(sql, params, (err) => {
+            if (!err) {
+                insertedCount++;
+            }
+        });
+    });
+
+    res.json({
+        message: 'Import completat cu succes!',
+        importedItems: insertedCount
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
