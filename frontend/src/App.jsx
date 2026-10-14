@@ -55,17 +55,20 @@ function App() {
   const [showResult, setShowResult] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
+  const [loading, setLoading] = useState(true);
+
   const fetchVocab = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/vocabulary');
       const data = await response.json();
       if (data.data) {
-        // Sortăm întotdeauna alfabetic după cuvânt
         const sortedData = data.data.sort((a, b) => a.word.localeCompare(b.word));
         setVocabList(sortedData);
       }
     } catch (err) {
       console.error('Error fetching vocabulary:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
