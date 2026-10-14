@@ -1,25 +1,44 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 
+const GRAMMAR_OPTIONS = [
+  'Substantiv (Noun)',
+  'Adjectiv (Adjective)',
+  'Verb',
+  'Adverb',
+  'Pronume (Pronoun)',
+  'Numeral',
+  'Prepoziție (Preposition)',
+  'Conjuncție (Conjunction)',
+  'Interjecție (Interjection)',
+  'Altele'
+];
+
+const ALPHABET = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
+
 function App() {
   const [activeTab, setActiveTab] = useState('vocab'); // 'vocab' sau 'quiz'
   const [vocabList, setVocabList] = useState([]);
   
-  // State pentru căutare și filtrare
+  // State pentru căutare și filtrare în listă
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('All');
+  const [filterGrammar, setFilterGrammar] = useState('All');
 
   // State pentru adăugare / editare
   const [editingId, setEditingId] = useState(null);
   const [word, setWord] = useState('');
   const [translation, setTranslation] = useState('');
-  const [grammarProperties, setGrammarProperties] = useState('');
+  const [grammarProperties, setGrammarProperties] = useState(GRAMMAR_OPTIONS[0]);
+  const [description, setDescription] = useState('');
   const [exampleText, setExampleText] = useState('');
   const [exampleTranslation, setExampleTranslation] = useState('');
   const [difficulty, setDifficulty] = useState('A1-A2');
 
-  // State pentru Quiz
+  // State pentru Quiz avansat
   const [quizDifficulty, setQuizDifficulty] = useState('All');
+  const [quizGrammar, setQuizGrammar] = useState('All');
+  const [quizFirstLetter, setQuizFirstLetter] = useState('All');
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
@@ -50,6 +69,7 @@ function App() {
       word,
       translation,
       grammar_properties: grammarProperties,
+      description,
       examples: [{ sentence: exampleText, translation: exampleTranslation }],
       difficulty
     };
@@ -80,7 +100,8 @@ function App() {
     setEditingId(item.id);
     setWord(item.word);
     setTranslation(item.translation);
-    setGrammarProperties(item.grammar_properties || '');
+    setGrammarProperties(item.grammar_properties || GRAMMAR_OPTIONS[0]);
+    setDescription(item.description || '');
     const parsedExamples = item.examples ? JSON.parse(item.examples) : [];
     setExampleText(parsedExamples[0]?.sentence || '');
     setExampleTranslation(parsedExamples[0]?.translation || '');
@@ -91,7 +112,8 @@ function App() {
     setEditingId(null);
     setWord('');
     setTranslation('');
-    setGrammarProperties('');
+    setGrammarProperties(GRAMMAR_OPTIONS[0]);
+    setDescription('');
     setExampleText('');
     setExampleTranslation('');
     setDifficulty('A1-A2');
@@ -117,11 +139,12 @@ function App() {
 
   const startQuiz = async () => {
     try {
-      const url = quizDifficulty === 'All' 
-        ? 'http://localhost:5000/api/quiz' 
-        : `http://localhost:5000/api/quiz?difficulty=${quizDifficulty}`;
-      
-      const response = await fetch(url);
+      let queryParams = new URLSearchParams();
+      if (quizDifficulty !== 'All') queryParams.append('difficulty', quizDifficulty);
+      if (quizGrammar !== 'All') queryParams.append('grammar', quizGrammar);
+      if (quizFirstLetter !== 'All') queryParams.append('firstLetter', quizFirstLetter);
+
+      const response = await fetch(`http://localhost:5000/api/quiz?${queryParams.toString()}`);
       const data = await response.json();
       
       if (data.data && data.data.length > 0) {
@@ -133,7 +156,7 @@ function App() {
         setUserAnswer('');
         setFeedback(null);
       } else {
-        alert('Nu există cuvinte pentru această dificultate!');
+        alert('Nu există cuvinte care să corespundă filtrelor selectate pentru quiz!');
       }
     } catch (err) {
       console.error('Error starting quiz:', err);
@@ -163,12 +186,13 @@ function App() {
     }, 2000);
   };
 
-  // Filtrare cuvinte după căutare și dificultate
+  // Filtrare cuvinte în listă
   const filteredVocab = vocabList.filter(item => {
     const matchesSearch = item.word.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.translation.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDifficulty = filterDifficulty === 'All' || item.difficulty === filterDifficulty;
-    return matchesSearch && matchesDifficulty;
+    const matchesGrammar = filterGrammar === 'All' || item.grammar_properties === filterGrammar;
+    return matchesSearch && matchesDifficulty && matchesGrammar;
   });
 
   return (
@@ -182,13 +206,13 @@ function App() {
       <div style={{ marginBottom: '25px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <button 
           onClick={() => setActiveTab('vocab')} 
-          style={{ padding: '10px 20px', background: activeTab === 'vocab' ? '#3498db' : '#ecf0f1', color: activeTab === 'vocab' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>
+          style={{ padding: '10px 20px', background: activeTab === 'vocab' ? '#3498db' : '#ecf0f1', color: activeTab === 'vocab' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
           📖 Gestionare Cuvinte
         </button>
         <button 
           onClick={() => setActiveTab('quiz')} 
-          style={{ padding: '10px 20px', background: activeTab === 'quiz' ? '#3498db' : '#ecf0f1', color: activeTab === 'quiz' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>
-          🧠 Modul Quiz
+          style={{ padding: '10px 20px', background: activeTab === 'quiz' ? '#3498db' : '#ecf0f1', color: activeTab === 'quiz' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+          🧠 Modul Quiz Avansat
         </button>
         <button 
           onClick={handleBackup} 
@@ -202,25 +226,39 @@ function App() {
           {/* Formular Adăugare / Editare */}
           <form onSubmit={handleSubmit} style={{ background: '#fff', padding: '20px', borderRadius: '10px', marginBottom: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <h3 style={{ marginTop: 0, color: '#34495e' }}>{editingId ? '✏️ Editează cuvântul' : '➕ Adaugă cuvânt sau expresie nouă'}</h3>
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <input type="text" placeholder="Cuvânt / Expresie" value={word} onChange={(e) => setWord(e.target.value)} required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
               <input type="text" placeholder="Traducere" value={translation} onChange={(e) => setTranslation(e.target.value)} required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <input type="text" placeholder="Proprietăți gramaticale (ex: verb iregulat, noun)" value={grammarProperties} onChange={(e) => setGrammarProperties(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
-            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: '#7f8c8d', display: 'block', marginBottom: '4px' }}>Valoare gramaticală:</label>
+                <select value={grammarProperties} onChange={(e) => setGrammarProperties(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }}>
+                  {GRAMMAR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#7f8c8d', display: 'block', marginBottom: '4px' }}>Nivel de dificultate:</label>
+                <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }}>
+                  <option value="A1-A2">A1-A2 (Începător)</option>
+                  <option value="B1">B1 (Mediu)</option>
+                  <option value="B2">B2 (Avansat)</option>
+                  <option value="C1-C2">C1-C2 (Expert)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <textarea placeholder="Descriere generală / Notițe despre casetă..." value={description} onChange={(e) => setDescription(e.target.value)} rows="2" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', resize: 'vertical' }} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
               <input type="text" placeholder="Propoziție exemplu (English)" value={exampleText} onChange={(e) => setExampleText(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
               <input type="text" placeholder="Traducerea exemplului" value={exampleTranslation} onChange={(e) => setExampleTranslation(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }}>
-                <option value="A1-A2">A1-A2 (Începător)</option>
-                <option value="B1">B1 (Mediu)</option>
-                <option value="B2">B2 (Avansat)</option>
-                <option value="C1-C2">C1-C2 (Expert)</option>
-              </select>
-            </div>
+
             <div style={{ display: 'flex', gap: '10px' }}>
               <button type="submit" style={{ padding: '10px 20px', background: editingId ? '#f39c12' : '#3498db', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
                 {editingId ? 'Salvează Modificările' : 'Adaugă în listă'}
@@ -234,14 +272,21 @@ function App() {
           </form>
 
           {/* Secțiune Căutare și Filtrare */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
             <input 
               type="text" 
               placeholder="🔍 Caută cuvânt sau traducere..." 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
-              style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }} 
+              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }} 
             />
+            <select 
+              value={filterGrammar} 
+              onChange={(e) => setFilterGrammar(e.target.value)} 
+              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }}>
+              <option value="All">Toate gramaticile</option>
+              {GRAMMAR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
             <select 
               value={filterDifficulty} 
               onChange={(e) => setFilterDifficulty(e.target.value)} 
@@ -264,8 +309,9 @@ function App() {
                   <h4 style={{ margin: '0 0 5px 0', fontSize: '18px', color: '#2c3e50' }}>
                     {item.word} - <span style={{ color: '#3498db' }}>{item.translation}</span> 
                     <span style={{ fontSize: '12px', background: '#ebf5fb', color: '#2980b9', padding: '2px 8px', borderRadius: '12px', marginLeft: '10px' }}>{item.difficulty}</span>
+                    <span style={{ fontSize: '12px', background: '#e8f8f5', color: '#16a085', padding: '2px 8px', borderRadius: '12px', marginLeft: '5px' }}>{item.grammar_properties}</span>
                   </h4>
-                  <p style={{ margin: '4px 0', color: '#7f8c8d', fontSize: '14px' }}><strong>Gramatică:</strong> {item.grammar_properties || '-'}</p>
+                  {item.description && <p style={{ margin: '4px 0', color: '#555', fontSize: '14px', fontStyle: 'italic' }}>{item.description}</p>}
                   <p style={{ margin: '4px 0', color: '#34495e', fontSize: '14px' }}><strong>Exemplu:</strong> {item.examples ? JSON.parse(item.examples)[0]?.sentence : ''} / <em>{item.examples ? JSON.parse(item.examples)[0]?.translation : ''}</em></p>
                 </div>
                 <div style={{ display: 'flex', gap: '5px' }}>
@@ -278,11 +324,13 @@ function App() {
         </div>
       ) : (
         <div style={{ background: '#fff', padding: '25px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ color: '#34495e', marginTop: 0 }}>Modul Test / Quiz</h3>
+          <h3 style={{ color: '#34495e', marginTop: 0 }}>Modul Quiz Avansat</h3>
           {!quizStarted ? (
             <div>
-              <p style={{ color: '#7f8c8d' }}>Alege nivelul de dificultate pentru testul tău:</p>
+              <p style={{ color: '#7f8c8d' }}>Configurează filtrele pentru testul tău:</p>
+              
               <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#34495e', display: 'block', marginBottom: '5px' }}>Dificultate:</label>
                 <select value={quizDifficulty} onChange={(e) => setQuizDifficulty(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
                   <option value="All">Toate nivelurile</option>
                   <option value="A1-A2">A1-A2</option>
@@ -291,6 +339,22 @@ function App() {
                   <option value="C1-C2">C1-C2</option>
                 </select>
               </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#34495e', display: 'block', marginBottom: '5px' }}>Valoare Gramaticală:</label>
+                <select value={quizGrammar} onChange={(e) => setQuizGrammar(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
+                  <option value="All">Toate valorile gramaticale</option>
+                  {GRAMMAR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#34495e', display: 'block', marginBottom: '5px' }}>Prima Literă (A-Z):</label>
+                <select value={quizFirstLetter} onChange={(e) => setQuizFirstLetter(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
+                  {ALPHABET.map(letter => <option key={letter} value={letter}>{letter === 'All' ? 'Toate literele' : letter}</option>)}
+                </select>
+              </div>
+
               <button onClick={startQuiz} style={{ padding: '12px 25px', background: '#2ecc71', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Pornește Testul</button>
             </div>
           ) : showResult ? (
@@ -303,7 +367,7 @@ function App() {
             <div>
               <p style={{ color: '#7f8c8d' }}>Întrebarea {currentIndex + 1} din {quizQuestions.length}</p>
               <h4 style={{ fontSize: '20px', color: '#2c3e50' }}>Traduce cuvântul: <span style={{ color: '#e74c3c' }}>{quizQuestions[currentIndex].word}</span></h4>
-              <p style={{ fontSize: '13px', color: '#95a5a6' }}><em>Dificultate: {quizQuestions[currentIndex].difficulty}</em></p>
+              <p style={{ fontSize: '13px', color: '#95a5a6' }}><em>Dificultate: {quizQuestions[currentIndex].difficulty} | Gramatică: {quizQuestions[currentIndex].grammar_properties}</em></p>
               
               <form onSubmit={handleAnswerSubmit}>
                 <div style={{ marginBottom: '15px' }}>
