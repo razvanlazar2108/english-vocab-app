@@ -17,13 +17,18 @@ const GRAMMAR_OPTIONS = [
 const ALPHABET = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
 
 function App() {
-  const [activeTab, setActiveTab] = useState('vocab'); // 'vocab' sau 'quiz'
+  const [activeTab, setActiveTab] = useState('vocab');
   const [vocabList, setVocabList] = useState([]);
   
-  // State pentru căutare și filtrare în listă
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterDifficulty, setFilterDifficulty] = useState('All');
-  const [filterGrammar, setFilterGrammar] = useState('All');
+  // State pentru inputurile temporare de filtrare
+  const [tempSearch, setTempSearch] = useState('');
+  const [tempFilterGrammar, setTempFilterGrammar] = useState('All');
+  const [tempFilterDifficulty, setTempFilterDifficulty] = useState('All');
+
+  // State-urile active care se actualizează DOAR când apeși butonul special de filtrare
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [appliedGrammar, setAppliedGrammar] = useState('All');
+  const [appliedDifficulty, setAppliedDifficulty] = useState('All');
 
   // State pentru adăugare / editare
   const [editingId, setEditingId] = useState(null);
@@ -34,6 +39,9 @@ function App() {
   const [exampleText, setExampleText] = useState('');
   const [exampleTranslation, setExampleTranslation] = useState('');
   const [difficulty, setDifficulty] = useState('A1-A2');
+  
+  // Animație buton adăugare
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State pentru Quiz avansat
   const [quizDifficulty, setQuizDifficulty] = useState('All');
@@ -52,7 +60,9 @@ function App() {
       const response = await fetch('http://localhost:5000/api/vocabulary');
       const data = await response.json();
       if (data.data) {
-        setVocabList(data.data);
+        // Sortăm întotdeauna alfabetic după cuvânt
+        const sortedData = data.data.sort((a, b) => a.word.localeCompare(b.word));
+        setVocabList(sortedData);
       }
     } catch (err) {
       console.error('Error fetching vocabulary:', err);
@@ -65,6 +75,8 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
     const newItem = {
       word,
       translation,
@@ -93,6 +105,8 @@ function App() {
       }
     } catch (err) {
       console.error('Error saving vocabulary:', err);
+    } finally {
+      setTimeout(() => setIsSubmitting(false), 300); // efect vizual de animație pe buton
     }
   };
 
@@ -106,6 +120,7 @@ function App() {
     setExampleText(parsedExamples[0]?.sentence || '');
     setExampleTranslation(parsedExamples[0]?.translation || '');
     setDifficulty(item.difficulty);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
@@ -148,6 +163,12 @@ function App() {
       console.error('Error during Drive backup:', err);
       alert('A apărut o eroare la realizarea backup-ului.');
     }
+  };
+
+  const applyFilters = () => {
+    setAppliedSearch(tempSearch);
+    setAppliedGrammar(tempFilterGrammar);
+    setAppliedDifficulty(tempFilterDifficulty);
   };
 
   const startQuiz = async () => {
@@ -199,11 +220,12 @@ function App() {
     }, 2000);
   };
 
+  // Filtrăm elementele pe baza filtrelor aplicate prin butonul special
   const filteredVocab = vocabList.filter(item => {
-    const matchesSearch = item.word.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          item.translation.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDifficulty = filterDifficulty === 'All' || item.difficulty === filterDifficulty;
-    const matchesGrammar = filterGrammar === 'All' || item.grammar_properties === filterGrammar;
+    const matchesSearch = item.word.toLowerCase().includes(appliedSearch.toLowerCase()) || 
+                          item.translation.toLowerCase().includes(appliedSearch.toLowerCase());
+    const matchesDifficulty = appliedDifficulty === 'All' || item.difficulty === appliedDifficulty;
+    const matchesGrammar = appliedGrammar === 'All' || item.grammar_properties === appliedGrammar;
     return matchesSearch && matchesDifficulty && matchesGrammar;
   });
 
@@ -270,7 +292,19 @@ function App() {
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit" style={{ padding: '10px 20px', background: editingId ? '#f39c12' : '#3498db', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+              <button 
+                type="submit" 
+                style={{ 
+                  padding: '10px 20px', 
+                  background: editingId ? '#f39c12' : '#3498db', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '6px', 
+                  cursor: 'pointer', 
+                  fontWeight: 'bold',
+                  transform: isSubmitting ? 'scale(0.95)' : 'scale(1)',
+                  transition: 'transform 0.1s ease, background 0.2s'
+                }}>
                 {editingId ? 'Salvează Modificările' : 'Adaugă în listă'}
               </button>
               {editingId && (
@@ -281,34 +315,42 @@ function App() {
             </div>
           </form>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-            <input 
-              type="text" 
-              placeholder="🔍 Caută cuvânt sau traducere..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }} 
-            />
-            <select 
-              value={filterGrammar} 
-              onChange={(e) => setFilterGrammar(e.target.value)} 
-              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }}>
-              <option value="All">Toate gramaticile</option>
-              {GRAMMAR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select 
-              value={filterDifficulty} 
-              onChange={(e) => setFilterDifficulty(e.target.value)} 
-              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }}>
-              <option value="All">Toate dificultățile</option>
-              <option value="A1-A2">A1-A2</option>
-              <option value="B1">B1</option>
-              <option value="B2">B2</option>
-              <option value="C1-C2">C1-C2</option>
-            </select>
+          {/* Secțiune Filtre cu Buton Special */}
+          <div style={{ background: '#fff', padding: '15px', borderRadius: '10px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <input 
+                type="text" 
+                placeholder="🔍 Caută cuvânt sau traducere..." 
+                value={tempSearch} 
+                onChange={(e) => setTempSearch(e.target.value)} 
+                style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }} 
+              />
+              <select 
+                value={tempFilterGrammar} 
+                onChange={(e) => setTempFilterGrammar(e.target.value)} 
+                style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }}>
+                <option value="All">Toate gramaticile</option>
+                {GRAMMAR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              <select 
+                value={tempFilterDifficulty} 
+                onChange={(e) => setTempFilterDifficulty(e.target.value)} 
+                style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff' }}>
+                <option value="All">Toate dificultățile</option>
+                <option value="A1-A2">A1-A2</option>
+                <option value="B1">B1</option>
+                <option value="B2">B2</option>
+                <option value="C1-C2">C1-C2</option>
+              </select>
+            </div>
+            <button 
+              onClick={applyFilters} 
+              style={{ padding: '8px 16px', background: '#8e44ad', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+              🔍 Aplică Filtrele
+            </button>
           </div>
 
-          <h3 style={{ color: '#34495e' }}>Lista Casetelor de Vocabular ({filteredVocab.length})</h3>
+          <h3 style={{ color: '#34495e' }}>Lista Casetelor de Vocabular (Sortate Alfabetic) - {filteredVocab.length}</h3>
           {filteredVocab.length === 0 ? (
             <p style={{ color: '#7f8c8d', background: '#fff', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>Nu au fost găsite cuvinte.</p>
           ) : (
